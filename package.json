@@ -10,7 +10,8 @@
   "prisma:generate": "prisma generate",
   "prisma:migrate": "prisma migrate dev",
   "prisma:studio": "prisma studio",
-  "db:migrate:test": "node scripts/migrate-test.js"
+  "db:migrate:test": "node scripts/migrate-test.js",
+  "seed:admin": "node scripts/seed-admin.js"
   },
   "keywords": [],
   "author": "",

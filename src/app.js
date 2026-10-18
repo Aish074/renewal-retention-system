@@ -1,4 +1,6 @@
 const express = require('express');
+const authRoutes = require('./modules/auth/auth.routes');
+const usersRoutes = require('./modules/users/users.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -12,6 +14,9 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+app.use('/auth', authRoutes);
+app.use('/users', usersRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
