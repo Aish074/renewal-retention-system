@@ -2,4 +2,5 @@
 module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests', '<rootDir>/src'],
+  testTimeout: 30000,
 };

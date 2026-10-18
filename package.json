@@ -9,7 +9,8 @@
   "test": "jest --runInBand",
   "prisma:generate": "prisma generate",
   "prisma:migrate": "prisma migrate dev",
-  "prisma:studio": "prisma studio"
+  "prisma:studio": "prisma studio",
+  "db:migrate:test": "node scripts/migrate-test.js"
   },
   "keywords": [],
   "author": "",

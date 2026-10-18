@@ -1,7 +1,205 @@
 generator client {
-  provider = "prisma-client"
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum UserRole {
+  ADMIN
+  ACCOUNT_MANAGER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum RenewalStatus {
+  PENDING
+  IN_PROGRESS
+  RENEWED
+  LOST
+}
+
+enum LostReason {
+  PRICE
+  COMPETITOR
+  NO_LONGER_NEEDED
+  POOR_SERVICE
+  NO_RESPONSE
+  OTHER
+}
+
+enum ReminderType {
+  DAYS_30
+  DAYS_7
+  OVERDUE
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum FollowUpType {
+  CALL
+  EMAIL
+  MEETING
+  MESSAGE
+}
+
+enum FollowUpOutcome {
+  INTERESTED
+  NEEDS_DISCOUNT
+  CONSIDERING_COMPETITOR
+  NO_RESPONSE
+  NOT_INTERESTED
+  OTHER
+}
+
+enum RenewalEventType {
+  CREATED
+  STATUS_CHANGED
+  REMINDER_SENT
+  REMINDER_FAILED
+  FOLLOW_UP_ADDED
+}
+
+// ---------- Models ----------
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole @default(ACCOUNT_MANAGER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  customers Customer[]
+  followUps FollowUp[]
+  events    RenewalEvent[]
+}
+
+model Customer {
+  id          String    @id @default(uuid())
+  name        String
+  contactName String?
+  email       String
+  phone       String?
+  notes       String?
+  ownerId     String
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  subscriptions Subscription[]
+
+  @@index([ownerId])
+}
+
+model Subscription {
+  id         String             @id @default(uuid())
+  customerId String
+  planName   String
+  value      Decimal            @db.Decimal(12, 2)
+  currency   String             @default("INR")
+  startDate  DateTime           @db.Date
+  termMonths Int
+  status     SubscriptionStatus @default(ACTIVE)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  customer Customer  @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  renewals Renewal[]
+
+  @@index([customerId])
+  @@index([status])
+}
+
+model Renewal {
+  id             String        @id @default(uuid())
+  subscriptionId String
+  cycleNumber    Int
+  dueDate        DateTime      @db.Date
+  currentValue   Decimal       @db.Decimal(12, 2)
+  renewedValue   Decimal?      @db.Decimal(12, 2)
+  status         RenewalStatus @default(PENDING)
+  lostReason     LostReason?
+  outcomeNotes   String?
+  closedAt       DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  subscription Subscription   @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  reminders    Reminder[]
+  followUps    FollowUp[]
+  events       RenewalEvent[]
+
+  @@unique([subscriptionId, cycleNumber])
+  @@unique([subscriptionId], where: { closedAt: null }, map: "Renewal_one_open_per_subscription")
+  @@index([status, dueDate])
+}
+
+model Reminder {
+  id             String         @id @default(uuid())
+  renewalId      String
+  type           ReminderType
+  status         ReminderStatus @default(PENDING)
+  recipientEmail String
+  attempts       Int            @default(0)
+  lastAttemptAt  DateTime?
+  lastError      String?
+  sentAt         DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  renewal Renewal @relation(fields: [renewalId], references: [id], onDelete: Cascade)
+
+  @@unique([renewalId, type])
+  @@index([status])
+}
+
+model FollowUp {
+  id             String           @id @default(uuid())
+  renewalId      String
+  createdById    String
+  type           FollowUpType
+  outcome        FollowUpOutcome?
+  notes          String?
+  contactedAt    DateTime         @default(now())
+  nextFollowUpAt DateTime?
+  createdAt      DateTime         @default(now())
+
+  renewal   Renewal @relation(fields: [renewalId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([renewalId, contactedAt])
+  @@index([nextFollowUpAt])
+  @@index([createdById])
+}
+
+model RenewalEvent {
+  id         String           @id @default(uuid())
+  renewalId  String
+  actorId    String?
+  type       RenewalEventType
+  fromStatus RenewalStatus?
+  toStatus   RenewalStatus?
+  metadata   Json?
+  createdAt  DateTime         @default(now())
+
+  renewal Renewal @relation(fields: [renewalId], references: [id], onDelete: Cascade)
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([renewalId, createdAt])
 }
