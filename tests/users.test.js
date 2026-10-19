@@ -15,7 +15,7 @@ describe('user management (admin only)', () => {
 
   describe('access control', () => {
     it('rejects requests without a token', async () => {
-      const res = await request(app).get('/users');
+      const res = await request(app).get('/api/v1/users');
       expect(res.status).toBe(401);
     });
 
@@ -23,8 +23,8 @@ describe('user management (admin only)', () => {
       const manager = await createUser({ role: 'ACCOUNT_MANAGER' });
       const token = await loginAs(manager);
 
-      const list = await request(app).get('/users').set(bearer(token));
-      const create = await request(app).post('/users').set(bearer(token)).send(validBody);
+      const list = await request(app).get('/api/v1/users').set(bearer(token));
+      const create = await request(app).post('/api/v1/users').set(bearer(token)).send(validBody);
 
       expect(list.status).toBe(403);
       expect(create.status).toBe(403);
@@ -36,7 +36,7 @@ describe('user management (admin only)', () => {
       const admin = await createUser({ role: 'ADMIN' });
       const token = await loginAs(admin);
 
-      const res = await request(app).post('/users').set(bearer(token)).send(validBody);
+      const res = await request(app).post('/api/v1/users').set(bearer(token)).send(validBody);
 
       expect(res.status).toBe(201);
       expect(res.body.user.role).toBe('ACCOUNT_MANAGER');
@@ -47,7 +47,7 @@ describe('user management (admin only)', () => {
       expect(stored.passwordHash.startsWith('$2')).toBe(true);
 
       const login = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: validBody.email, password: validBody.password });
       expect(login.status).toBe(200);
     });
@@ -57,12 +57,12 @@ describe('user management (admin only)', () => {
       const token = await loginAs(admin);
 
       await request(app)
-        .post('/users')
+        .post('/api/v1/users')
         .set(bearer(token))
         .send({ ...validBody, email: 'New@Example.com' });
 
       const res = await request(app)
-        .post('/users')
+        .post('/api/v1/users')
         .set(bearer(token))
         .send({ ...validBody, email: 'NEW@example.com' });
 
@@ -75,7 +75,7 @@ describe('user management (admin only)', () => {
       const token = await loginAs(admin);
 
       const res = await request(app)
-        .post('/users')
+        .post('/api/v1/users')
         .set(bearer(token))
         .send({ ...validBody, password: 'short' });
 
@@ -88,7 +88,7 @@ describe('user management (admin only)', () => {
       const token = await loginAs(admin);
 
       const res = await request(app)
-        .post('/users')
+        .post('/api/v1/users')
         .set(bearer(token))
         .send({ ...validBody, password: 'é'.repeat(40) });
 
@@ -100,11 +100,11 @@ describe('user management (admin only)', () => {
       const token = await loginAs(admin);
 
       const badRole = await request(app)
-        .post('/users')
+        .post('/api/v1/users')
         .set(bearer(token))
         .send({ ...validBody, role: 'SUPERUSER' });
       const extraField = await request(app)
-        .post('/users')
+        .post('/api/v1/users')
         .set(bearer(token))
         .send({ ...validBody, isActive: false });
 
@@ -119,7 +119,7 @@ describe('user management (admin only)', () => {
       await createUser();
       const token = await loginAs(admin);
 
-      const res = await request(app).get('/users').set(bearer(token));
+      const res = await request(app).get('/api/v1/users').set(bearer(token));
 
       expect(res.status).toBe(200);
       expect(res.body.users).toHaveLength(2);
@@ -135,14 +135,14 @@ describe('user management (admin only)', () => {
       const managerToken = await loginAs(manager);
 
       const res = await request(app)
-        .patch(`/users/${manager.id}`)
+        .patch(`/api/v1/users/${manager.id}`)
         .set(bearer(adminToken))
         .send({ isActive: false });
 
       expect(res.status).toBe(200);
       expect(res.body.user.isActive).toBe(false);
 
-      const after = await request(app).get('/auth/me').set(bearer(managerToken));
+      const after = await request(app).get('/api/v1/auth/me').set(bearer(managerToken));
       expect(after.status).toBe(401);
     });
 
@@ -151,11 +151,11 @@ describe('user management (admin only)', () => {
       const token = await loginAs(admin);
 
       const deactivate = await request(app)
-        .patch(`/users/${admin.id}`)
+        .patch(`/api/v1/users/${admin.id}`)
         .set(bearer(token))
         .send({ isActive: false });
       const demote = await request(app)
-        .patch(`/users/${admin.id}`)
+        .patch(`/api/v1/users/${admin.id}`)
         .set(bearer(token))
         .send({ role: 'ACCOUNT_MANAGER' });
 
@@ -169,11 +169,11 @@ describe('user management (admin only)', () => {
       const token = await loginAs(admin);
 
       const unknown = await request(app)
-        .patch('/users/00000000-0000-4000-8000-000000000000')
+        .patch('/api/v1/users/00000000-0000-4000-8000-000000000000')
         .set(bearer(token))
         .send({ name: 'Someone' });
       const malformed = await request(app)
-        .patch('/users/not-a-uuid')
+        .patch('/api/v1/users/not-a-uuid')
         .set(bearer(token))
         .send({ name: 'Someone' });
 
@@ -187,7 +187,7 @@ describe('user management (admin only)', () => {
       const token = await loginAs(admin);
 
       const res = await request(app)
-        .patch(`/users/${manager.id}`)
+        .patch(`/api/v1/users/${manager.id}`)
         .set(bearer(token))
         .send({});
 

@@ -14,7 +14,7 @@ describe('authentication', () => {
       const user = await createUser();
 
       const res = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: user.email, password: user.password });
 
       expect(res.status).toBe(200);
@@ -27,7 +27,7 @@ describe('authentication', () => {
       const user = await createUser({ email: 'mixed@example.com' });
 
       const res = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: '  MIXED@Example.com ', password: user.password });
 
       expect(res.status).toBe(200);
@@ -37,7 +37,7 @@ describe('authentication', () => {
       const user = await createUser();
 
       const res = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: user.email, password: 'wrong-password-123' });
 
       expect(res.status).toBe(401);
@@ -48,10 +48,10 @@ describe('authentication', () => {
       const user = await createUser();
 
       const wrongPassword = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: user.email, password: 'wrong-password-123' });
       const unknownEmail = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: 'nobody@example.com', password: 'wrong-password-123' });
 
       expect(unknownEmail.status).toBe(401);
@@ -62,14 +62,14 @@ describe('authentication', () => {
       const user = await createUser({ isActive: false });
 
       const res = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: user.email, password: user.password });
 
       expect(res.status).toBe(401);
     });
 
     it('rejects a request with a missing password', async () => {
-      const res = await request(app).post('/auth/login').send({ email: 'a@example.com' });
+      const res = await request(app).post('/api/v1/auth/login').send({ email: 'a@example.com' });
 
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
@@ -78,12 +78,12 @@ describe('authentication', () => {
 
   describe('GET /auth/me', () => {
     it('requires a token', async () => {
-      const res = await request(app).get('/auth/me');
+      const res = await request(app).get('/api/v1/auth/me');
       expect(res.status).toBe(401);
     });
 
     it('rejects a malformed token', async () => {
-      const res = await request(app).get('/auth/me').set(bearer('not-a-token'));
+      const res = await request(app).get('/api/v1/auth/me').set(bearer('not-a-token'));
       expect(res.status).toBe(401);
     });
 
@@ -91,7 +91,7 @@ describe('authentication', () => {
       const user = await createUser();
       const forged = jwt.sign({}, 'x'.repeat(40), { subject: user.id });
 
-      const res = await request(app).get('/auth/me').set(bearer(forged));
+      const res = await request(app).get('/api/v1/auth/me').set(bearer(forged));
       expect(res.status).toBe(401);
     });
 
@@ -99,7 +99,7 @@ describe('authentication', () => {
       const user = await createUser();
       const expired = jwt.sign({}, env.JWT_SECRET, { subject: user.id, expiresIn: -10 });
 
-      const res = await request(app).get('/auth/me').set(bearer(expired));
+      const res = await request(app).get('/api/v1/auth/me').set(bearer(expired));
       expect(res.status).toBe(401);
     });
 
@@ -107,7 +107,7 @@ describe('authentication', () => {
       const user = await createUser({ role: 'ADMIN' });
       const token = await loginAs(user);
 
-      const res = await request(app).get('/auth/me').set(bearer(token));
+      const res = await request(app).get('/api/v1/auth/me').set(bearer(token));
 
       expect(res.status).toBe(200);
       expect(res.body.user.id).toBe(user.id);
@@ -120,7 +120,7 @@ describe('authentication', () => {
 
       await prisma.user.update({ where: { id: user.id }, data: { isActive: false } });
 
-      const res = await request(app).get('/auth/me').set(bearer(token));
+      const res = await request(app).get('/api/v1/auth/me').set(bearer(token));
       expect(res.status).toBe(401);
     });
   });

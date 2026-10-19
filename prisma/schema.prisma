@@ -103,7 +103,8 @@ model Customer {
 
   owner         User           @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   subscriptions Subscription[]
-
+  
+  @@unique([email], where: { archivedAt: null }, map: "Customer_active_email_key")
   @@index([ownerId])
 }
 

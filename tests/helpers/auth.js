@@ -27,7 +27,7 @@ async function createUser({
 
 async function loginAs(user) {
   const res = await request(app)
-    .post('/auth/login')
+    .post('/api/v1/auth/login')
     .send({ email: user.email, password: user.password });
 
   if (!res.body.token) {
